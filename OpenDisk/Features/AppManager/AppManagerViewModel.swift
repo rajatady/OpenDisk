@@ -66,9 +66,11 @@ final class AppManagerViewModel: ObservableObject {
 
         do {
             let catalog = try await appCatalogService.fetchInstalledApps { [weak self] progress in
-                guard let self else { return }
-                self.state.scanMessage = progress.message
-                self.state.scanProgress = progress.fractionCompleted
+                Task { @MainActor [weak self] in
+                    guard let self else { return }
+                    self.state.scanMessage = progress.message
+                    self.state.scanProgress = progress.fractionCompleted
+                }
             }
 
             var enriched: [InstalledApp] = []

@@ -167,7 +167,7 @@ struct OnboardingView: View {
 
             VStack(alignment: .leading, spacing: ODSpacing.sm) {
                 featureRow(icon: "lock.shield.fill", color: ODColors.safe, text: "All analysis stays on-device. No file content leaves your Mac.")
-                featureRow(icon: "sparkles", color: .purple, text: "AI-powered cleanup with Apple Intelligence.")
+                featureRow(icon: "sparkles", color: ODColors.accentSecondary, text: "AI-powered cleanup with Apple Intelligence.")
                 featureRow(icon: "trash.slash.fill", color: ODColors.review, text: "Always moves to Trash — never permanently deletes.")
             }
         }
@@ -409,8 +409,8 @@ struct OnboardingView: View {
     private func scopeIconTint(_ scope: ScanScope) -> Color {
         switch scope {
         case .home: return ODColors.accent
-        case .applications: return .purple
-        case .fullDisk: return .orange
+        case .applications: return ODColors.accentSecondary
+        case .fullDisk: return ODColors.review
         }
     }
 

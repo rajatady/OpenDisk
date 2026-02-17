@@ -14,6 +14,11 @@ final class DesignSystemComplianceTests: XCTestCase {
         }
 
         var violations: [String] = []
+        let forbiddenColorTokens = [
+            ".blue", ".green", ".orange", ".purple", ".pink",
+            ".red", ".yellow", ".teal", ".mint", ".indigo",
+            ".brown", ".gray", ".black", ".white"
+        ]
 
         for case let fileURL as URL in enumerator where fileURL.pathExtension == "swift" {
             let source = try String(contentsOf: fileURL)
@@ -22,6 +27,9 @@ final class DesignSystemComplianceTests: XCTestCase {
             }
             if source.contains("Color(") {
                 violations.append("\(fileURL.path): hardcoded Color usage")
+            }
+            for token in forbiddenColorTokens where source.contains("return \(token)") || source.contains("foregroundStyle(\(token)") || source.contains("fill(\(token)") {
+                violations.append("\(fileURL.path): raw SwiftUI color token \(token)")
             }
         }
 

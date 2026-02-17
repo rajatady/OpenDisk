@@ -442,10 +442,10 @@ struct AppManagerView: View {
     private func artifactGroupTint(_ kind: ArtifactGroupKind) -> Color {
         switch kind {
         case .appBundle: return ODColors.accent
-        case .userData: return .purple
-        case .cache: return .orange
-        case .preferences: return .teal
-        case .systemIntegration: return .pink
+        case .userData: return ODColors.accentSecondary
+        case .cache: return ODColors.review
+        case .preferences: return ODColors.safe
+        case .systemIntegration: return ODColors.risky
         }
     }
 

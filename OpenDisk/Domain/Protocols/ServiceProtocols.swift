@@ -63,6 +63,11 @@ protocol RecommendationsCacheStoreProtocol: Sendable {
     func save(entry: RecommendationsCacheEntry) async
 }
 
+protocol StorageMapCacheStoreProtocol: Sendable {
+    func load(key: String, maxAge: TimeInterval) async -> StorageMapCacheEntry?
+    func save(entry: StorageMapCacheEntry) async
+}
+
 protocol DiskScannerProtocol: Sendable {
     func scan(root: URL) async throws -> DiskNode
 }

@@ -129,11 +129,11 @@ struct MainShellView: View {
     private func sectionTint(_ section: AppSection) -> Color {
         switch section {
         case .appManager: return ODColors.accent
-        case .recommendations: return .purple
-        case .storageMap: return .orange
-        case .smartCategories: return .teal
-        case .duplicates: return .pink
-        case .timeline: return ODColors.safe
+        case .recommendations: return ODColors.accentSecondary
+        case .storageMap: return ODColors.review
+        case .smartCategories: return ODColors.safe
+        case .duplicates: return ODColors.risky
+        case .timeline: return ODColors.accent
         }
     }
 
@@ -189,15 +189,14 @@ struct MainShellView: View {
             AppManagerView(viewModel: rootViewModel.appManagerViewModel)
         case .recommendations:
             RecommendationsView(viewModel: rootViewModel.recommendationsViewModel)
+        case .storageMap:
+            StorageMapView(viewModel: rootViewModel.storageMapViewModel, scope: rootViewModel.scanScope)
+        case .smartCategories:
+            SmartCategoriesView(viewModel: rootViewModel.smartCategoriesViewModel)
+        case .duplicates:
+            DuplicatesView(viewModel: rootViewModel.duplicatesViewModel)
         case .timeline:
             ActivityMonitorView(viewModel: rootViewModel.activityMonitorViewModel)
-        case .storageMap, .smartCategories, .duplicates:
-            EmptyState(
-                icon: "hammer.fill",
-                message: rootViewModel.selectedSection.title,
-                detail: "Planned in subsequent milestones. Foundation and uninstaller-first flow are live."
-            )
-            .odCanvasBackground()
         }
     }
 
@@ -214,6 +213,10 @@ struct MainShellView: View {
             statusPill(
                 icon: "sparkles",
                 text: rootViewModel.recommendationsViewModel.state.usedCachedResults ? "AI: Cached" : "AI: Live"
+            )
+            statusPill(
+                icon: "circle.grid.cross",
+                text: rootViewModel.storageMapViewModel.state.usedCachedResults ? "Map: Cached" : "Map: Live"
             )
             statusPill(icon: "scope", text: rootViewModel.scanScope.title)
         }

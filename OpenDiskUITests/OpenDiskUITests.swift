@@ -91,4 +91,27 @@ final class OpenDiskUITests: XCTestCase {
         XCTAssertTrue(app.staticTexts["Activity Monitor"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.otherElements["activity_chart"].waitForExistence(timeout: 5))
     }
+
+    @MainActor
+    func testSidebarNavigationToStorageMapCategoriesAndDuplicates() throws {
+        let app = XCUIApplication()
+        app.launchEnvironment["OPENDISK_USE_MOCKS"] = "1"
+        app.launchEnvironment["OPENDISK_FORCE_COMPLETE_ONBOARDING"] = "1"
+        app.launch()
+
+        let storageMapItem = app.staticTexts["Storage Map"]
+        XCTAssertTrue(storageMapItem.waitForExistence(timeout: 5))
+        storageMapItem.tap()
+        XCTAssertTrue(app.staticTexts["storage_map_title"].waitForExistence(timeout: 5))
+
+        let categoriesItem = app.staticTexts["Categories"]
+        XCTAssertTrue(categoriesItem.waitForExistence(timeout: 5))
+        categoriesItem.tap()
+        XCTAssertTrue(app.staticTexts["smart_categories_title"].waitForExistence(timeout: 5))
+
+        let duplicatesItem = app.staticTexts["Duplicates"]
+        XCTAssertTrue(duplicatesItem.waitForExistence(timeout: 5))
+        duplicatesItem.tap()
+        XCTAssertTrue(app.staticTexts["duplicates_title"].waitForExistence(timeout: 5))
+    }
 }

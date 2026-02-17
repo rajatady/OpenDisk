@@ -33,7 +33,7 @@ struct RecommendationsView: View {
                             ForEach(profile.kinds, id: \.self) { kind in
                                 Text(kind.rawValue)
                                     .odTextStyle(.caption)
-                                    .foregroundStyle(.white)
+                                    .odForeground(.textPrimary)
                                     .padding(.horizontal, ODSpacing.sm)
                                     .padding(.vertical, 3)
                                     .background(profileKindTint(kind), in: Capsule())
@@ -118,7 +118,7 @@ struct RecommendationsView: View {
                     VStack {
                         Text("#\(index + 1)")
                             .odTextStyle(.caption)
-                            .foregroundStyle(.white)
+                            .odForeground(.textPrimary)
                             .frame(width: 28, height: 28)
                             .background(priorityTint(for: recommendation.riskScore), in: Circle())
                         Spacer()
@@ -199,13 +199,13 @@ struct RecommendationsView: View {
 
     private func profileKindTint(_ kind: UserProfileKind) -> Color {
         switch kind {
-        case .iosDeveloper: return .blue
-        case .webDeveloper: return .cyan
-        case .mlEngineer: return .orange
-        case .designer: return .purple
-        case .videoCreator: return .pink
-        case .dataScientist: return .teal
-        case .generalUser: return .gray
+        case .iosDeveloper: return ODColors.accent
+        case .webDeveloper: return ODColors.accentSecondary
+        case .mlEngineer: return ODColors.review
+        case .designer: return ODColors.safe
+        case .videoCreator: return ODColors.accentSecondary
+        case .dataScientist: return ODColors.accent
+        case .generalUser: return ODColors.textSecondary
         }
     }
 

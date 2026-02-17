@@ -83,6 +83,25 @@ struct RecommendationsViewState: Sendable {
 struct StorageMapViewState: Sendable {
     var root: DiskNode?
     var isLoading: Bool
+    var scanMessage: String
+    var scanProgress: Double?
+    var usedCachedResults: Bool
+    var lastScanAt: Date?
+    var errorMessage: String?
+}
+
+struct SmartCategoriesViewState: Sendable {
+    var categories: [SmartCategory]
+    var isLoading: Bool
+    var usedCachedResults: Bool
+    var errorMessage: String?
+}
+
+struct DuplicatesViewState: Sendable {
+    var largeItems: [LargeItem]
+    var duplicateGroups: [DuplicateGroup]
+    var isLoading: Bool
+    var usedCachedResults: Bool
     var errorMessage: String?
 }
 

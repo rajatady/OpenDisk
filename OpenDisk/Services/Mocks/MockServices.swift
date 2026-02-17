@@ -157,6 +157,21 @@ actor MockRecommendationsCacheStore: RecommendationsCacheStoreProtocol {
     }
 }
 
+actor MockStorageMapCacheStore: StorageMapCacheStoreProtocol {
+    private var entries: [String: StorageMapCacheEntry] = [:]
+
+    func load(key: String, maxAge: TimeInterval) async -> StorageMapCacheEntry? {
+        guard let entry = entries[key], Date().timeIntervalSince(entry.createdAt) <= maxAge else {
+            return nil
+        }
+        return entry
+    }
+
+    func save(entry: StorageMapCacheEntry) async {
+        entries[entry.key] = entry
+    }
+}
+
 actor MockActivityMonitorService: ActivityMonitorServiceProtocol {
     private var entries: [ActivitySample] = []
 

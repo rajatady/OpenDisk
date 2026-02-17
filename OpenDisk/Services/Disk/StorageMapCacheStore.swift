@@ -1,14 +1,12 @@
 import Foundation
 
-actor ActivityMonitorService: ActivityMonitorServiceProtocol {
+actor StorageMapCacheStore: StorageMapCacheStoreProtocol {
     nonisolated(unsafe) private let fileManager: FileManager
     private let storageURL: URL
-    private var items: [ActivitySample]
-    private let maxItems: Int
+    private var entries: [String: StorageMapCacheEntry]
 
-    init(fileManager: FileManager = .default, storageURL: URL? = nil, maxItems: Int = 600) {
+    init(fileManager: FileManager = .default, storageURL: URL? = nil) {
         self.fileManager = fileManager
-        self.maxItems = maxItems
 
         if let storageURL {
             self.storageURL = storageURL
@@ -17,28 +15,29 @@ actor ActivityMonitorService: ActivityMonitorServiceProtocol {
                 ?? URL(fileURLWithPath: NSTemporaryDirectory())
             self.storageURL = base
                 .appendingPathComponent("OpenDisk", isDirectory: true)
-                .appendingPathComponent("activity-samples.json")
+                .appendingPathComponent("storage-map-cache.json")
         }
 
-        self.items = Self.load(fileManager: fileManager, url: self.storageURL)
+        self.entries = Self.load(fileManager: fileManager, url: self.storageURL)
     }
 
-    func record(sample: ActivitySample) async {
-        items.append(sample)
-        items.sort(by: { $0.capturedAt < $1.capturedAt })
-
-        if items.count > maxItems {
-            items.removeFirst(items.count - maxItems)
+    func load(key: String, maxAge: TimeInterval) async -> StorageMapCacheEntry? {
+        guard let entry = entries[key] else {
+            return nil
         }
 
+        guard Date().timeIntervalSince(entry.createdAt) <= maxAge else {
+            entries.removeValue(forKey: key)
+            persist()
+            return nil
+        }
+
+        return entry
+    }
+
+    func save(entry: StorageMapCacheEntry) async {
+        entries[entry.key] = entry
         persist()
-    }
-
-    func samples(limit: Int?) async -> [ActivitySample] {
-        guard let limit, limit > 0 else {
-            return items
-        }
-        return Array(items.suffix(limit))
     }
 
     private func persist() {
@@ -51,20 +50,20 @@ actor ActivityMonitorService: ActivityMonitorServiceProtocol {
             let encoder = JSONEncoder()
             encoder.outputFormatting = [.prettyPrinted, .sortedKeys]
             encoder.dateEncodingStrategy = .iso8601
-            let data = try encoder.encode(items)
+            let data = try encoder.encode(entries)
             try data.write(to: storageURL, options: .atomic)
         } catch {
             return
         }
     }
 
-    private static func load(fileManager: FileManager, url: URL) -> [ActivitySample] {
+    private static func load(fileManager: FileManager, url: URL) -> [String: StorageMapCacheEntry] {
         guard fileManager.fileExists(atPath: url.path), let data = try? Data(contentsOf: url) else {
-            return []
+            return [:]
         }
 
         let decoder = JSONDecoder()
         decoder.dateDecodingStrategy = .iso8601
-        return (try? decoder.decode([ActivitySample].self, from: data)) ?? []
+        return (try? decoder.decode([String: StorageMapCacheEntry].self, from: data)) ?? [:]
     }
 }

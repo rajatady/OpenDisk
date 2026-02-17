@@ -1,11 +1,11 @@
 import Foundation
 
 actor RecommendationsCacheStore: RecommendationsCacheStoreProtocol {
-    private let fileManager: FileManager
+    nonisolated(unsafe) private let fileManager: FileManager
     private let storageURL: URL
     private var entries: [String: RecommendationsCacheEntry] = [:]
 
-    nonisolated init(fileManager: FileManager = .default, storageURL: URL? = nil) {
+    init(fileManager: FileManager = .default, storageURL: URL? = nil) {
         self.fileManager = fileManager
 
         if let storageURL {

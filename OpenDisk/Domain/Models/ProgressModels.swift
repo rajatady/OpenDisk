@@ -27,3 +27,9 @@ struct RecommendationsCacheEntry: Hashable, Codable, Sendable {
     let profile: UserProfile
     let recommendations: [Recommendation]
 }
+
+struct StorageMapCacheEntry: Hashable, Codable, Sendable {
+    let key: String
+    let createdAt: Date
+    let root: DiskNode
+}

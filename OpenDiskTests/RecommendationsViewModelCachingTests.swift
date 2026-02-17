@@ -24,6 +24,7 @@ final class RecommendationsViewModelCachingTests: XCTestCase {
             recommendationRanker: RecommendationRankerService(),
             metadataDiscoveryService: metadataService,
             recommendationsCacheStore: cacheStore,
+            storageMapCacheStore: MockStorageMapCacheStore(),
             diskScanner: MockDiskScannerService(),
             timelineStore: TimelineStore(),
             activityMonitor: MockActivityMonitorService(),

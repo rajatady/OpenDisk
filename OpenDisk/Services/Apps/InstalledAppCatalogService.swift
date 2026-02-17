@@ -1,13 +1,13 @@
 import Foundation
 
 actor InstalledAppCatalogService: InstalledAppCatalogServiceProtocol, AppCatalogFetchInfoProvider {
-    private let fileManager: FileManager
+    nonisolated(unsafe) private let fileManager: FileManager
     private let sizeCalculator: FileSystemSizeCalculator
     private let scanRoots: [URL]
     private let cacheStore: AppCatalogCacheStore
     private var lastInfo = AppCatalogFetchInfo(source: .live, fetchedAt: .distantPast)
 
-    nonisolated init(
+    init(
         fileManager: FileManager = .default,
         sizeCalculator: FileSystemSizeCalculator,
         scanRoots: [URL]? = nil,
@@ -132,7 +132,7 @@ actor AppCatalogCacheStore {
         let apps: [InstalledApp]
     }
 
-    private let fileManager: FileManager
+    nonisolated(unsafe) private let fileManager: FileManager
     private let storageURL: URL
     private let cacheTTL: TimeInterval
 

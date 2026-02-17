@@ -1,12 +1,12 @@
 import Foundation
 
-enum SafetyLevel: String, Codable, CaseIterable, Sendable {
+nonisolated enum SafetyLevel: String, Codable, CaseIterable, Sendable {
     case safe
     case review
     case risky
 }
 
-enum ArtifactGroupKind: String, Codable, CaseIterable, Sendable {
+nonisolated enum ArtifactGroupKind: String, Codable, CaseIterable, Sendable {
     case appBundle
     case userData
     case cache
@@ -14,7 +14,7 @@ enum ArtifactGroupKind: String, Codable, CaseIterable, Sendable {
     case systemIntegration
 }
 
-struct AssociatedArtifact: Identifiable, Hashable, Codable, Sendable {
+nonisolated struct AssociatedArtifact: Identifiable, Hashable, Codable, Sendable {
     let path: String
     let groupKind: ArtifactGroupKind
     let safetyLevel: SafetyLevel
@@ -28,7 +28,7 @@ struct AssociatedArtifact: Identifiable, Hashable, Codable, Sendable {
     }
 }
 
-struct ArtifactGroup: Identifiable, Hashable, Codable, Sendable {
+nonisolated struct ArtifactGroup: Identifiable, Hashable, Codable, Sendable {
     let kind: ArtifactGroupKind
     var artifacts: [AssociatedArtifact]
 
@@ -39,7 +39,7 @@ struct ArtifactGroup: Identifiable, Hashable, Codable, Sendable {
     }
 }
 
-struct InstalledApp: Identifiable, Hashable, Codable, Sendable {
+nonisolated struct InstalledApp: Identifiable, Hashable, Codable, Sendable {
     let id: String
     let displayName: String
     let bundleID: String

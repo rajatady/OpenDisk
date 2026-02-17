@@ -1,6 +1,6 @@
 import Foundation
 
-final class AppContainer {
+nonisolated final class AppContainer {
     let permissionService: PermissionServiceProtocol
     let onboardingStore: OnboardingStateStoreProtocol
     let aiCapabilityService: AICapabilityServiceProtocol
@@ -13,6 +13,7 @@ final class AppContainer {
     let recommendationRanker: RecommendationRankerProtocol
     let metadataDiscoveryService: MetadataDiscoveryServiceProtocol
     let recommendationsCacheStore: RecommendationsCacheStoreProtocol
+    let storageMapCacheStore: StorageMapCacheStoreProtocol
     let diskScanner: DiskScannerProtocol
     let timelineStore: TimelineStoreProtocol
     let activityMonitor: ActivityMonitorServiceProtocol
@@ -31,6 +32,7 @@ final class AppContainer {
         recommendationRanker: RecommendationRankerProtocol,
         metadataDiscoveryService: MetadataDiscoveryServiceProtocol,
         recommendationsCacheStore: RecommendationsCacheStoreProtocol,
+        storageMapCacheStore: StorageMapCacheStoreProtocol,
         diskScanner: DiskScannerProtocol,
         timelineStore: TimelineStoreProtocol,
         activityMonitor: ActivityMonitorServiceProtocol,
@@ -48,12 +50,14 @@ final class AppContainer {
         self.recommendationRanker = recommendationRanker
         self.metadataDiscoveryService = metadataDiscoveryService
         self.recommendationsCacheStore = recommendationsCacheStore
+        self.storageMapCacheStore = storageMapCacheStore
         self.diskScanner = diskScanner
         self.timelineStore = timelineStore
         self.activityMonitor = activityMonitor
         self.automationScheduler = automationScheduler
     }
 
+    @MainActor
     static func make(processInfo: ProcessInfo = .processInfo) -> AppContainer {
         if processInfo.environment["OPENDISK_USE_MOCKS"] == "1" {
             return .mock()
@@ -66,6 +70,7 @@ final class AppContainer {
         let appCatalogService = InstalledAppCatalogService(sizeCalculator: sizeCalculator)
         let artifactResolver = AppArtifactResolverService(sizeCalculator: sizeCalculator)
         let recommendationsCache = RecommendationsCacheStore()
+        let storageMapCache = StorageMapCacheStore()
         let activityMonitor = ActivityMonitorService()
 
         return AppContainer(
@@ -81,6 +86,7 @@ final class AppContainer {
             recommendationRanker: RecommendationRankerService(),
             metadataDiscoveryService: MetadataDiscoveryService(),
             recommendationsCacheStore: recommendationsCache,
+            storageMapCacheStore: storageMapCache,
             diskScanner: DiskScannerService(sizeCalculator: sizeCalculator),
             timelineStore: TimelineStore(),
             activityMonitor: activityMonitor,
@@ -88,6 +94,7 @@ final class AppContainer {
         )
     }
 
+    @MainActor
     static func mock() -> AppContainer {
         let mockApps = MockInstalledAppCatalogService.sampleApps
         let artifactResolver = MockArtifactResolverService(sampleApps: mockApps)
@@ -105,6 +112,7 @@ final class AppContainer {
             recommendationRanker: RecommendationRankerService(),
             metadataDiscoveryService: MockMetadataDiscoveryService(),
             recommendationsCacheStore: MockRecommendationsCacheStore(),
+            storageMapCacheStore: MockStorageMapCacheStore(),
             diskScanner: MockDiskScannerService(),
             timelineStore: TimelineStore(),
             activityMonitor: MockActivityMonitorService(),
