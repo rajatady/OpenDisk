@@ -1,17 +1,10 @@
-//
-//  OpenDiskTests.swift
-//  OpenDiskTests
-//
-//  Created by Kumar Divya  Rajat on 18/02/26.
-//
-
-import Testing
+import XCTest
 @testable import OpenDisk
 
-struct OpenDiskTests {
-
-    @Test func example() async throws {
-        // Write your test here and use APIs like `#expect(...)` to check expected conditions.
+final class OpenDiskTests: XCTestCase {
+    func testFormattingBytesProducesReadableUnits() {
+        let text = Formatting.bytes(1_500_000_000)
+        XCTAssertFalse(text.isEmpty)
+        XCTAssertTrue(text.contains("GB") || text.contains("MB"))
     }
-
 }

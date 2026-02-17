@@ -1,0 +1,22 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run tests
+        run: |
+          mkdir -p /tmp/clang-modules /tmp/swift-modules
+          CLANG_MODULE_CACHE_PATH=/tmp/clang-modules \
+          SWIFT_MODULE_CACHE_PATH=/tmp/swift-modules \
+          xcodebuild -project OpenDisk.xcodeproj -scheme OpenDisk -destination 'platform=macOS' -enableCodeCoverage YES -resultBundlePath build/TestResults.xcresult CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO test
+
+      - name: Coverage gate
+        run: ./scripts/check_coverage.sh build/TestResults.xcresult

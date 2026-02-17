@@ -1,32 +1,14 @@
-//
-//  OpenDiskApp.swift
-//  OpenDisk
-//
-//  Created by Kumar Divya  Rajat on 18/02/26.
-//
-
 import SwiftUI
-import SwiftData
 
 @main
 struct OpenDiskApp: App {
-    var sharedModelContainer: ModelContainer = {
-        let schema = Schema([
-            Item.self,
-        ])
-        let modelConfiguration = ModelConfiguration(schema: schema, isStoredInMemoryOnly: false)
-
-        do {
-            return try ModelContainer(for: schema, configurations: [modelConfiguration])
-        } catch {
-            fatalError("Could not create ModelContainer: \(error)")
-        }
-    }()
+    private let container = AppContainer.make()
 
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            RootView(container: container)
+                .frame(minWidth: 1180, minHeight: 760)
         }
-        .modelContainer(sharedModelContainer)
+        .windowResizability(.contentSize)
     }
 }
