@@ -1,5 +1,21 @@
 import SwiftUI
 
+private enum AppIconProvider {
+    private static let cache = NSCache<NSString, NSImage>()
+
+    static func icon(for path: String) -> NSImage {
+        let key = path as NSString
+        if let cached = cache.object(forKey: key) {
+            return cached
+        }
+
+        let icon = NSWorkspace.shared.icon(forFile: path)
+        icon.size = NSSize(width: 64, height: 64)
+        cache.setObject(icon, forKey: key)
+        return icon
+    }
+}
+
 struct AppManagerView: View {
     enum DisplayMode: String, CaseIterable, Identifiable {
         case list
@@ -163,40 +179,47 @@ struct AppManagerView: View {
     private var appCollection: some View {
         if displayMode == .list {
             List(selection: $viewModel.selectedAppID) {
-                ForEach(Array(viewModel.state.filteredApps.enumerated()), id: \.element.id) { index, app in
+                ForEach(viewModel.state.filteredApps, id: \.id) { app in
                     Button {
                         withAnimation(ODAnimation.snappy) {
                             viewModel.selectedAppID = app.id
                         }
                     } label: {
-                        AnimatedListRow(index: index) {
-                            HStack(spacing: ODSpacing.md) {
-                                appIcon(for: app)
+                        HStack(spacing: ODSpacing.md) {
+                            appIcon(for: app)
 
-                                VStack(alignment: .leading, spacing: 2) {
-                                    Text(app.displayName)
-                                        .odTextStyle(.heading)
-                                    HStack(spacing: ODSpacing.xs) {
-                                        Text(app.bundleID)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(app.displayName)
+                                    .odTextStyle(.heading)
+                                    .lineLimit(1)
+                                HStack(spacing: ODSpacing.xs) {
+                                    Text(app.bundleID)
+                                        .odTextStyle(.caption, color: .textSecondary)
+                                        .lineLimit(1)
+                                        .truncationMode(.middle)
+                                    if let lastUsed = app.lastUsedDate {
+                                        Text("·")
                                             .odTextStyle(.caption, color: .textSecondary)
-                                        if let lastUsed = app.lastUsedDate {
-                                            Text("·")
-                                                .odTextStyle(.caption, color: .textSecondary)
-                                            Text(Formatting.relativeDate(lastUsed))
-                                                .odTextStyle(.caption, color: .textSecondary)
-                                        }
+                                        Text(Formatting.relativeDate(lastUsed))
+                                            .odTextStyle(.caption, color: .textSecondary)
                                     }
                                 }
-                                Spacer()
-                                SizeBadge(bytes: app.trueSizeBytes)
+                                .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
                             }
+                            Spacer()
+                            SizeBadge(bytes: app.trueSizeBytes)
                         }
+                        .odSurfaceCard(selected: viewModel.selectedAppID == app.id)
                     }
                     .buttonStyle(.plain)
                     .accessibilityIdentifier("app_row_\(app.bundleID)")
+                    .listRowSeparator(.hidden)
+                    .listRowBackground(Color.clear)
                 }
             }
             .listStyle(.plain)
+            .scrollContentBackground(.hidden)
+            .background(Color.clear)
         } else {
             ScrollView {
                 LazyVGrid(columns: [GridItem(.adaptive(minimum: 190), spacing: ODSpacing.sm)], spacing: ODSpacing.sm) {
@@ -232,7 +255,7 @@ struct AppManagerView: View {
 
     private func appIcon(for app: InstalledApp) -> some View {
         Group {
-            let icon = NSWorkspace.shared.icon(forFile: app.bundlePath)
+            let icon = AppIconProvider.icon(for: app.bundlePath)
             Image(nsImage: icon)
                 .resizable()
                 .frame(width: 32, height: 32)
@@ -250,7 +273,7 @@ struct AppManagerView: View {
                 VStack(alignment: .leading, spacing: ODSpacing.md) {
                     // App header
                     HStack(spacing: ODSpacing.md) {
-                        let icon = NSWorkspace.shared.icon(forFile: app.bundlePath)
+                        let icon = AppIconProvider.icon(for: app.bundlePath)
                         Image(nsImage: icon)
                             .resizable()
                             .frame(width: 56, height: 56)
@@ -291,7 +314,9 @@ struct AppManagerView: View {
                                                 .odTextStyle(.mono)
                                                 .foregroundStyle(ODColors.textSecondary)
                                                 .lineLimit(1)
+                                                .truncationMode(.middle)
                                         }
+                                        .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
                                         Spacer()
                                         SizeBadge(bytes: artifact.sizeBytes)
                                     }

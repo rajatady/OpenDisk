@@ -189,15 +189,84 @@ actor MockActivityMonitorService: ActivityMonitorServiceProtocol {
 
 struct MockDiskScannerService: DiskScannerProtocol {
     func scan(root: URL) async throws -> DiskNode {
-        DiskNode(
+        let applicationsPath = root.appendingPathComponent("Applications")
+        let usersPath = root.appendingPathComponent("Users")
+        let homePath = usersPath.appendingPathComponent("kumar")
+
+        return DiskNode(
             id: root.path,
             name: root.lastPathComponent,
             path: root.path,
             sizeBytes: 48_000_000_000,
             isDirectory: true,
             children: [
-                DiskNode(id: root.appendingPathComponent("Applications").path, name: "Applications", path: root.appendingPathComponent("Applications").path, sizeBytes: 20_000_000_000, isDirectory: true, children: []),
-                DiskNode(id: root.appendingPathComponent("Users").path, name: "Users", path: root.appendingPathComponent("Users").path, sizeBytes: 28_000_000_000, isDirectory: true, children: [])
+                DiskNode(
+                    id: applicationsPath.path,
+                    name: "Applications",
+                    path: applicationsPath.path,
+                    sizeBytes: 20_000_000_000,
+                    isDirectory: true,
+                    children: [
+                        DiskNode(
+                            id: applicationsPath.appendingPathComponent("Xcode.app").path,
+                            name: "Xcode.app",
+                            path: applicationsPath.appendingPathComponent("Xcode.app").path,
+                            sizeBytes: 9_200_000_000,
+                            isDirectory: true,
+                            children: []
+                        ),
+                        DiskNode(
+                            id: applicationsPath.appendingPathComponent("Figma.app").path,
+                            name: "Figma.app",
+                            path: applicationsPath.appendingPathComponent("Figma.app").path,
+                            sizeBytes: 1_400_000_000,
+                            isDirectory: true,
+                            children: []
+                        )
+                    ]
+                ),
+                DiskNode(
+                    id: usersPath.path,
+                    name: "Users",
+                    path: usersPath.path,
+                    sizeBytes: 28_000_000_000,
+                    isDirectory: true,
+                    children: [
+                        DiskNode(
+                            id: homePath.path,
+                            name: "kumar",
+                            path: homePath.path,
+                            sizeBytes: 21_500_000_000,
+                            isDirectory: true,
+                            children: [
+                                DiskNode(
+                                    id: homePath.appendingPathComponent("Downloads").path,
+                                    name: "Downloads",
+                                    path: homePath.appendingPathComponent("Downloads").path,
+                                    sizeBytes: 6_400_000_000,
+                                    isDirectory: true,
+                                    children: []
+                                ),
+                                DiskNode(
+                                    id: homePath.appendingPathComponent("Projects").path,
+                                    name: "Projects",
+                                    path: homePath.appendingPathComponent("Projects").path,
+                                    sizeBytes: 8_700_000_000,
+                                    isDirectory: true,
+                                    children: []
+                                ),
+                                DiskNode(
+                                    id: homePath.appendingPathComponent("Models").path,
+                                    name: "Models",
+                                    path: homePath.appendingPathComponent("Models").path,
+                                    sizeBytes: 4_200_000_000,
+                                    isDirectory: true,
+                                    children: []
+                                )
+                            ]
+                        )
+                    ]
+                )
             ]
         )
     }

@@ -155,6 +155,15 @@ final class OpenDiskUITests: XCTestCase {
         storageMapItem.tap()
         XCTAssertTrue(app.staticTexts["storage_map_title"].waitForExistence(timeout: 5))
 
+        let firstTile = app.buttons["storage_map_tile_0"]
+        XCTAssertTrue(firstTile.waitForExistence(timeout: 5))
+        firstTile.tap()
+
+        let backButton = app.buttons["storage_map_back_button"]
+        XCTAssertTrue(backButton.waitForExistence(timeout: 5))
+        XCTAssertTrue(backButton.isEnabled)
+        backButton.tap()
+
         let categoriesItem = app.staticTexts["Categories"]
         XCTAssertTrue(categoriesItem.waitForExistence(timeout: 5))
         categoriesItem.tap()
@@ -164,5 +173,10 @@ final class OpenDiskUITests: XCTestCase {
         XCTAssertTrue(duplicatesItem.waitForExistence(timeout: 5))
         duplicatesItem.tap()
         XCTAssertTrue(app.staticTexts["duplicates_title"].waitForExistence(timeout: 5))
+
+        let appManagerItem = app.staticTexts["App Manager"]
+        XCTAssertTrue(appManagerItem.waitForExistence(timeout: 5))
+        appManagerItem.tap()
+        XCTAssertTrue(app.staticTexts["Installed Apps"].waitForExistence(timeout: 5))
     }
 }

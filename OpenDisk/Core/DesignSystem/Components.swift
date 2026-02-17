@@ -190,24 +190,34 @@ struct HoverCard<Content: View>: View {
 
 struct AnimatedListRow<Content: View>: View {
     let index: Int
+    let animateEntry: Bool
+    let enableHover: Bool
     let content: Content
     @State private var appeared = false
     @State private var isHovered = false
 
-    init(index: Int, @ViewBuilder content: () -> Content) {
+    init(
+        index: Int,
+        animateEntry: Bool = true,
+        enableHover: Bool = true,
+        @ViewBuilder content: () -> Content
+    ) {
         self.index = index
+        self.animateEntry = animateEntry
+        self.enableHover = enableHover
         self.content = content()
     }
 
     var body: some View {
         content
-            .background(isHovered ? ODColors.hoverOverlay : .clear)
-            .offset(x: isHovered ? 2 : 0)
-            .opacity(appeared ? 1 : 0)
-            .offset(y: appeared ? 0 : 12)
-            .animation(ODAnimation.staggerDelay(index: index), value: appeared)
-            .animation(ODAnimation.microInteraction, value: isHovered)
+            .background(enableHover && isHovered ? ODColors.hoverOverlay : .clear)
+            .offset(x: enableHover && isHovered ? 2 : 0)
+            .opacity(animateEntry ? (appeared ? 1 : 0) : 1)
+            .offset(y: animateEntry ? (appeared ? 0 : 12) : 0)
+            .animation(animateEntry ? ODAnimation.staggerDelay(index: index) : .none, value: appeared)
+            .animation(enableHover ? ODAnimation.microInteraction : .none, value: isHovered)
             .onHover { hovering in
+                guard enableHover else { return }
                 isHovered = hovering
             }
             .onAppear {

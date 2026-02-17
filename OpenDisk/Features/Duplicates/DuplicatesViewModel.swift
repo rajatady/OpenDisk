@@ -11,12 +11,12 @@ final class DuplicatesViewModel: ObservableObject {
         errorMessage: nil
     )
 
-    func load(apps: [InstalledApp], usedCachedResults: Bool) {
+    func load(apps: [InstalledApp], diskRoot: DiskNode?, usedCachedResults: Bool) {
         state.isLoading = true
         state.errorMessage = nil
 
-        let largeItems = Self.buildLargeItems(from: apps)
-        let duplicateGroups = Self.buildDuplicateGroups(from: apps)
+        let largeItems = Self.buildLargeItems(from: apps, diskRoot: diskRoot)
+        let duplicateGroups = Self.buildDuplicateGroups(from: apps, diskRoot: diskRoot)
 
         state.largeItems = largeItems
         state.duplicateGroups = duplicateGroups
@@ -30,7 +30,7 @@ final class DuplicatesViewModel: ObservableObject {
 
     nonisolated deinit {}
 
-    private static func buildLargeItems(from apps: [InstalledApp]) -> [LargeItem] {
+    private static func buildLargeItems(from apps: [InstalledApp], diskRoot: DiskNode?) -> [LargeItem] {
         var items: [LargeItem] = apps.map {
             LargeItem(
                 id: "bundle:\($0.id)",
@@ -57,15 +57,30 @@ final class DuplicatesViewModel: ObservableObject {
             }
         }
 
+        if let diskRoot {
+            for node in flattenDiskNodes(root: diskRoot, maxDepth: 5, limit: 1_200) where node.sizeBytes > 5_000_000 {
+                items.append(
+                    LargeItem(
+                        id: "disk:\(node.path)",
+                        title: node.name.isEmpty ? "/" : node.name,
+                        path: node.path,
+                        sizeBytes: node.sizeBytes,
+                        isDirectory: node.isDirectory,
+                        sourceBundleID: nil
+                    )
+                )
+            }
+        }
+
         return items
             .sorted(by: { $0.sizeBytes > $1.sizeBytes })
-            .prefix(20)
+            .prefix(200)
             .map { $0 }
     }
 
-    private static func buildDuplicateGroups(from apps: [InstalledApp]) -> [DuplicateGroup] {
+    private static func buildDuplicateGroups(from apps: [InstalledApp], diskRoot: DiskNode?) -> [DuplicateGroup] {
         let candidates: [DuplicateCandidate] = apps.flatMap { app in
-            app.artifacts.map {
+            app.artifacts.filter { !$0.isDirectory }.map {
                 DuplicateCandidate(
                     id: "\($0.path)|\(app.bundleID)",
                     path: $0.path,
@@ -75,8 +90,24 @@ final class DuplicatesViewModel: ObservableObject {
             }
         }
 
-        let grouped = Dictionary(grouping: candidates) { candidate in
-            let name = URL(fileURLWithPath: candidate.path).lastPathComponent.lowercased()
+        var all = candidates
+
+        if let diskRoot {
+            let diskCandidates = flattenDiskNodes(root: diskRoot, maxDepth: 6, limit: 2_000)
+                .filter { !$0.isDirectory && $0.sizeBytes > 5_000_000 }
+                .map {
+                    DuplicateCandidate(
+                        id: "disk:\($0.path)",
+                        path: $0.path,
+                        sizeBytes: $0.sizeBytes,
+                        sourceBundleID: nil
+                    )
+                }
+            all.append(contentsOf: diskCandidates)
+        }
+
+        let grouped = Dictionary(grouping: all) { candidate in
+            let name = normalizedName(for: candidate.path)
             return "\(name)|\(candidate.sizeBytes)"
         }
 
@@ -84,16 +115,61 @@ final class DuplicatesViewModel: ObservableObject {
             .filter { $0.value.count > 1 }
             .map { key, values in
                 let name = key.split(separator: "|").first.map(String.init) ?? "duplicate"
-                let totalBytes = values.reduce(0) { $0 + $1.sizeBytes }
+                let sortedValues = values.sorted(by: { $0.path < $1.path })
+                let totalBytes = sortedValues.reduce(0) { $0 + $1.sizeBytes }
                 return DuplicateGroup(
                     id: key,
                     name: name,
                     totalBytes: totalBytes,
-                    duplicates: values.sorted(by: { $0.path < $1.path })
+                    duplicates: sortedValues
+                )
+            }
+            .filter { group in
+                group.duplicates.count >= 2 &&
+                (
+                    group.totalBytes > 20_000_000 ||
+                    group.duplicates.contains(where: { $0.sourceBundleID != nil })
                 )
             }
             .sorted(by: { $0.totalBytes > $1.totalBytes })
-            .prefix(20)
+            .prefix(120)
             .map { $0 }
+    }
+
+    private static func flattenDiskNodes(root: DiskNode, maxDepth: Int, limit: Int) -> [DiskNode] {
+        var result: [DiskNode] = []
+        var queue: [(DiskNode, Int)] = [(root, 0)]
+        var cursor = 0
+
+        while cursor < queue.count, result.count < limit {
+            let (node, depth) = queue[cursor]
+            cursor += 1
+            if depth > 0 {
+                result.append(node)
+            }
+
+            guard depth < maxDepth else {
+                continue
+            }
+
+            for child in node.children {
+                queue.append((child, depth + 1))
+            }
+        }
+
+        return result
+    }
+
+    private static func normalizedName(for path: String) -> String {
+        let base = URL(fileURLWithPath: path)
+            .deletingPathExtension()
+            .lastPathComponent
+            .lowercased()
+        let reduced = base.replacingOccurrences(
+            of: #"(?:[_\-\s](?:v)?\d+|[_\-\s][0-9a-f]{6,})+$"#,
+            with: "",
+            options: .regularExpression
+        )
+        return reduced.isEmpty ? base : reduced
     }
 }

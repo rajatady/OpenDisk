@@ -49,6 +49,32 @@ struct StorageMapView: View {
                 Spacer()
 
                 VStack(alignment: .trailing, spacing: ODSpacing.sm) {
+                    HStack(spacing: ODSpacing.xs) {
+                        Button {
+                            withAnimation(ODAnimation.snappy) {
+                                _ = stack.popLast()
+                            }
+                        } label: {
+                            HStack(spacing: ODSpacing.xs) {
+                                Image(systemName: "chevron.left")
+                                Text("Back")
+                            }
+                        }
+                        .buttonStyle(ActionButtonStyle(variant: .secondary))
+                        .disabled(stack.count <= 1)
+                        .accessibilityIdentifier("storage_map_back_button")
+
+                        Button("Root") {
+                            guard let root = viewModel.state.root else { return }
+                            withAnimation(ODAnimation.snappy) {
+                                stack = [root]
+                            }
+                        }
+                        .buttonStyle(ActionButtonStyle(variant: .secondary))
+                        .disabled(stack.count <= 1)
+                        .accessibilityIdentifier("storage_map_root_button")
+                    }
+
                     if let lastScanAt = viewModel.state.lastScanAt {
                         Text("Updated \(Formatting.relativeDate(lastScanAt))")
                             .odTextStyle(.caption, color: .textSecondary)
@@ -66,29 +92,37 @@ struct StorageMapView: View {
     }
 
     private var breadcrumb: some View {
-        HStack(spacing: ODSpacing.xs) {
-            ForEach(Array(stack.enumerated()), id: \.element.id) { index, node in
-                Button {
-                    withAnimation(ODAnimation.snappy) {
-                        stack = Array(stack.prefix(index + 1))
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: ODSpacing.xs) {
+                ForEach(Array(stack.enumerated()), id: \.element.id) { index, node in
+                    Button {
+                        withAnimation(ODAnimation.snappy) {
+                            stack = Array(stack.prefix(index + 1))
+                        }
+                    } label: {
+                        Text(node.name.isEmpty ? "/" : node.name)
+                            .odTextStyle(.caption, color: index == stack.count - 1 ? .textPrimary : .textSecondary)
+                            .lineLimit(1)
+                            .truncationMode(.middle)
                     }
-                } label: {
-                    Text(node.name.isEmpty ? "/" : node.name)
-                        .odTextStyle(.caption, color: index == stack.count - 1 ? .textPrimary : .textSecondary)
-                }
-                .buttonStyle(.plain)
+                    .buttonStyle(.plain)
 
-                if index < stack.count - 1 {
-                    Image(systemName: "chevron.right")
-                        .odIcon(.tiny)
-                        .odForeground(.textSecondary)
+                    if index < stack.count - 1 {
+                        Image(systemName: "chevron.right")
+                            .odIcon(.tiny)
+                            .odForeground(.textSecondary)
+                    }
                 }
             }
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 
     private var statsRow: some View {
-        HStack(spacing: ODSpacing.md) {
+        LazyVGrid(
+            columns: [GridItem(.adaptive(minimum: 220), spacing: ODSpacing.md)],
+            spacing: ODSpacing.md
+        ) {
             StatCard(
                 title: "Current Node",
                 value: currentNode?.name.isEmpty == false ? (currentNode?.name ?? "/") : "/",
@@ -179,9 +213,10 @@ struct StorageMapView: View {
             HStack(spacing: ODSpacing.xs) {
                 ForEach(Array(items.enumerated()), id: \.element.id) { index, child in
                     let widthFraction = CGFloat(Double(child.sizeBytes) / Double(total))
+                    let canDrillDown = !child.children.isEmpty
 
                     Button {
-                        guard !child.children.isEmpty else { return }
+                        guard canDrillDown else { return }
                         withAnimation(ODAnimation.pageTransition) {
                             stack.append(child)
                         }
@@ -213,7 +248,9 @@ struct StorageMapView: View {
                         )
                     }
                     .buttonStyle(.plain)
+                    .disabled(!canDrillDown)
                     .frame(width: max(geo.size.width * widthFraction, 40))
+                    .accessibilityIdentifier("storage_map_tile_\(index)")
                 }
             }
         }
@@ -232,26 +269,44 @@ struct StorageMapView: View {
                             .odTextStyle(.body, color: .textSecondary)
                     } else {
                         ForEach(Array(items.enumerated()), id: \.element.id) { index, child in
-                            AnimatedListRow(index: index) {
-                                HStack(spacing: ODSpacing.sm) {
-                                    Image(systemName: child.isDirectory ? "folder.fill" : "doc")
-                                        .odIcon(.small)
-                                        .odForeground(.textSecondary)
-
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text(child.name)
-                                            .odTextStyle(.body)
-                                            .lineLimit(1)
-                                        Text(child.path)
-                                            .odTextStyle(.caption, color: .textSecondary)
-                                            .lineLimit(1)
-                                    }
-
-                                    Spacer()
-                                    SizeBadge(bytes: child.sizeBytes)
+                            let canDrillDown = !child.children.isEmpty
+                            Button {
+                                guard canDrillDown else { return }
+                                withAnimation(ODAnimation.snappy) {
+                                    stack.append(child)
                                 }
-                                .odSurfaceCard(selected: false)
+                            } label: {
+                                AnimatedListRow(index: index, animateEntry: index < 20, enableHover: canDrillDown) {
+                                    HStack(spacing: ODSpacing.sm) {
+                                        Image(systemName: child.isDirectory ? "folder.fill" : "doc")
+                                            .odIcon(.small)
+                                            .odForeground(.textSecondary)
+
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text(child.name)
+                                                .odTextStyle(.body)
+                                                .lineLimit(1)
+                                            Text(child.path)
+                                                .odTextStyle(.caption, color: .textSecondary)
+                                                .lineLimit(1)
+                                                .truncationMode(.middle)
+                                        }
+                                        .frame(minWidth: 0, maxWidth: .infinity, alignment: .leading)
+
+                                        if canDrillDown {
+                                            Image(systemName: "chevron.right")
+                                                .odIcon(.caption)
+                                                .odForeground(.textSecondary)
+                                        }
+
+                                        SizeBadge(bytes: child.sizeBytes)
+                                    }
+                                    .odSurfaceCard(selected: false)
+                                }
                             }
+                            .buttonStyle(.plain)
+                            .disabled(!canDrillDown)
+                            .accessibilityIdentifier("storage_map_node_\(index)")
                         }
                     }
                 }

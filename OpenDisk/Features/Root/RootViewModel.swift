@@ -58,6 +58,7 @@ final class RootViewModel: ObservableObject {
         )
         duplicatesViewModel.load(
             apps: appManagerViewModel.state.apps,
+            diskRoot: storageMapViewModel.state.root,
             usedCachedResults: appManagerViewModel.state.usedCachedResults
         )
         if let snapshot = makeCurrentSnapshot(scope: scanScope) {

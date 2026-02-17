@@ -12,6 +12,7 @@ struct MainShellView: View {
             Divider().opacity(0.3)
             detailArea
         }
+        .frame(minWidth: 1180, maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
                 Button {
@@ -179,7 +180,9 @@ struct MainShellView: View {
                 ))
         }
         .animation(ODAnimation.pageTransition, value: rootViewModel.selectedSection)
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .frame(minWidth: 0, maxWidth: .infinity, maxHeight: .infinity)
+        .layoutPriority(1)
+        .clipped()
     }
 
     @ViewBuilder
@@ -229,6 +232,7 @@ struct MainShellView: View {
                 .shadow(color: ODColors.shadowSubtle, radius: 12, y: 4)
         )
         .padding(.bottom, ODSpacing.sm)
+        .padding(.horizontal, ODSpacing.sm)
     }
 
     private func statusPill(icon: String, text: String) -> some View {
