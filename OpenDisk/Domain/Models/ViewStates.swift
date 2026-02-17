@@ -107,7 +107,9 @@ struct DuplicatesViewState: Sendable {
 
 struct ActivityMonitorViewState: Sendable {
     var samples: [ActivitySample]
+    var snapshots: [DiskSnapshot]
     var summary: ActivitySummary?
+    var growthProjection: GrowthProjection?
     var isLoading: Bool
     var errorMessage: String?
 }

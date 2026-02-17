@@ -2,13 +2,56 @@ import SwiftUI
 import Charts
 
 struct ActivityMonitorView: View {
+    private enum SessionMetric: String, CaseIterable, Identifiable {
+        case reclaim
+        case duration
+        case appCount
+
+        var id: String { rawValue }
+
+        var title: String {
+            switch self {
+            case .reclaim:
+                return "Reclaim"
+            case .duration:
+                return "Duration"
+            case .appCount:
+                return "Apps"
+            }
+        }
+
+        var axisTitle: String {
+            switch self {
+            case .reclaim:
+                return "Reclaim (GB)"
+            case .duration:
+                return "Duration (s)"
+            case .appCount:
+                return "Apps"
+            }
+        }
+
+        var tint: Color {
+            switch self {
+            case .reclaim:
+                return ODColors.accent
+            case .duration:
+                return ODColors.accentSecondary
+            case .appCount:
+                return ODColors.safe
+            }
+        }
+    }
+
     @ObservedObject var viewModel: ActivityMonitorViewModel
+    @State private var selectedMetric: SessionMetric = .reclaim
 
     var body: some View {
         VStack(spacing: ODSpacing.md) {
             header
             summaryCards
             chartPanel
+            diskTrendPanel
             sessionList
         }
         .padding(ODSpacing.lg)
@@ -49,14 +92,31 @@ struct ActivityMonitorView: View {
                 value: Formatting.bytes(viewModel.state.summary?.peakReclaimBytes ?? 0),
                 subtitle: "Highest single-session potential"
             )
+
+            StatCard(
+                title: "Forecast",
+                value: projectionValueLabel,
+                subtitle: projectionSubtitle
+            )
         }
     }
 
     private var chartPanel: some View {
         GlassPanel {
             VStack(alignment: .leading, spacing: ODSpacing.sm) {
-                Text("Session Trend")
-                    .odTextStyle(.heading)
+                HStack(spacing: ODSpacing.md) {
+                    Text("Session Trend")
+                        .odTextStyle(.heading)
+                    Spacer()
+                    Picker("Metric", selection: $selectedMetric) {
+                        ForEach(SessionMetric.allCases) { metric in
+                            Text(metric.title).tag(metric)
+                        }
+                    }
+                    .pickerStyle(.segmented)
+                    .frame(width: 260)
+                    .accessibilityIdentifier("activity_metric_picker")
+                }
 
                 if viewModel.state.samples.isEmpty {
                     Text("No activity yet. Run a scan to populate the chart.")
@@ -66,35 +126,37 @@ struct ActivityMonitorView: View {
                     Chart(viewModel.state.samples) { sample in
                         LineMark(
                             x: .value("Time", sample.capturedAt),
-                            y: .value("Reclaim (GB)", reclaimGigabytes(sample.reclaimBytes))
+                            y: .value(selectedMetric.axisTitle, metricValue(for: sample))
                         )
                         .interpolationMethod(.catmullRom)
-                        .foregroundStyle(ODColorToken.accent.color)
+                        .foregroundStyle(selectedMetric.tint)
 
                         AreaMark(
                             x: .value("Time", sample.capturedAt),
-                            y: .value("Reclaim (GB)", reclaimGigabytes(sample.reclaimBytes))
+                            y: .value(selectedMetric.axisTitle, metricValue(for: sample))
                         )
                         .interpolationMethod(.catmullRom)
                         .foregroundStyle(
                             LinearGradient(
-                                colors: [ODColorToken.accent.color.opacity(0.35), .clear],
+                                colors: [selectedMetric.tint.opacity(0.35), .clear],
                                 startPoint: .top,
                                 endPoint: .bottom
                             )
                         )
 
-                        BarMark(
+                        PointMark(
                             x: .value("Time", sample.capturedAt),
-                            y: .value("Apps", sample.appCount)
+                            y: .value(selectedMetric.axisTitle, metricValue(for: sample))
                         )
-                        .opacity(0.20)
-                        .foregroundStyle(ODColorToken.safe.color)
+                        .foregroundStyle(selectedMetric.tint)
+                        .symbolSize(24)
                     }
                     .chartYAxis {
                         AxisMarks(position: .leading)
                     }
+                    .chartYScale(domain: 0...max(metricCeiling, 1))
                     .frame(minHeight: 220)
+                    .animation(ODAnimation.smooth, value: selectedMetric)
                 }
             }
         }
@@ -102,6 +164,53 @@ struct ActivityMonitorView: View {
             Color.clear
                 .accessibilityElement()
                 .accessibilityIdentifier("activity_chart")
+        )
+    }
+
+    private var diskTrendPanel: some View {
+        GlassPanel {
+            VStack(alignment: .leading, spacing: ODSpacing.sm) {
+                Text("Disk Trend")
+                    .odTextStyle(.heading)
+
+                if viewModel.state.snapshots.isEmpty {
+                    Text("No timeline snapshots yet. Refresh to start capturing disk trend.")
+                        .odTextStyle(.body, color: .textSecondary)
+                        .frame(maxWidth: .infinity, minHeight: 180, alignment: .center)
+                } else {
+                    Chart(viewModel.state.snapshots) { snapshot in
+                        LineMark(
+                            x: .value("Time", snapshot.capturedAt),
+                            y: .value("Used (GB)", reclaimGigabytes(snapshot.usedBytes))
+                        )
+                        .interpolationMethod(.catmullRom)
+                        .foregroundStyle(ODColors.review)
+
+                        LineMark(
+                            x: .value("Time", snapshot.capturedAt),
+                            y: .value("Free (GB)", reclaimGigabytes(snapshot.freeBytes))
+                        )
+                        .interpolationMethod(.catmullRom)
+                        .foregroundStyle(ODColors.safe)
+                    }
+                    .chartYAxis {
+                        AxisMarks(position: .leading)
+                    }
+                    .frame(minHeight: 180)
+
+                    HStack(spacing: ODSpacing.md) {
+                        legendDot(color: ODColors.review, label: "Used")
+                        legendDot(color: ODColors.safe, label: "Free")
+                        Spacer()
+                        projectionPill
+                    }
+                }
+            }
+        }
+        .overlay(
+            Color.clear
+                .accessibilityElement()
+                .accessibilityIdentifier("activity_disk_trend_chart")
         )
     }
 
@@ -147,6 +256,69 @@ struct ActivityMonitorView: View {
                 }
             }
         }
+    }
+
+    private var projectionPill: some View {
+        HStack(spacing: 4) {
+            Image(systemName: "calendar.badge.clock")
+                .odIcon(.caption)
+                .odForeground(.accent)
+            Text(projectionPillLabel)
+                .odTextStyle(.caption, color: .textSecondary)
+        }
+        .padding(.horizontal, ODSpacing.sm)
+        .padding(.vertical, 4)
+        .background(ODColors.insetSurface.opacity(0.8), in: Capsule())
+        .accessibilityIdentifier("activity_projection_label")
+    }
+
+    private func legendDot(color: Color, label: String) -> some View {
+        HStack(spacing: 4) {
+            Circle()
+                .fill(color)
+                .frame(width: 6, height: 6)
+            Text(label)
+                .odTextStyle(.caption, color: .textSecondary)
+        }
+    }
+
+    private func metricValue(for sample: ActivitySample) -> Double {
+        switch selectedMetric {
+        case .reclaim:
+            return reclaimGigabytes(sample.reclaimBytes)
+        case .duration:
+            return sample.scanDurationSeconds
+        case .appCount:
+            return Double(sample.appCount)
+        }
+    }
+
+    private var metricCeiling: Double {
+        let ceiling = viewModel.state.samples
+            .map(metricValue(for:))
+            .max() ?? 0
+        return ceiling * 1.15
+    }
+
+    private var projectionValueLabel: String {
+        guard let projection = viewModel.state.growthProjection else {
+            return "N/A"
+        }
+        return "\(projection.daysUntilFull)d"
+    }
+
+    private var projectionSubtitle: String {
+        guard let projection = viewModel.state.growthProjection else {
+            return "Need timeline history"
+        }
+        return "\(Formatting.bytes(projection.averageDailyGrowthBytes))/day growth"
+    }
+
+    private var projectionPillLabel: String {
+        guard let projection = viewModel.state.growthProjection else {
+            return "Projection unavailable"
+        }
+        return "Projected full in \(projection.daysUntilFull) days"
     }
 
     private func reclaimGigabytes(_ bytes: Int64) -> Double {

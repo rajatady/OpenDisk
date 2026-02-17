@@ -1,18 +1,80 @@
+import AppKit
 import XCTest
 
 final class OpenDiskUITests: XCTestCase {
+    private let appBundleID = "com.trymagically.OpenDisk"
+
     override func setUpWithError() throws {
         continueAfterFailure = false
+        terminateRunningAppInstances()
+    }
+
+    private func terminateRunningAppInstances() {
+        forceKillLingeringOpenDiskProcesses()
+
+        let deadline = Date().addingTimeInterval(2.0)
+
+        for app in NSRunningApplication.runningApplications(withBundleIdentifier: appBundleID) {
+            _ = app.terminate()
+        }
+
+        while Date() < deadline {
+            if NSRunningApplication.runningApplications(withBundleIdentifier: appBundleID).isEmpty {
+                return
+            }
+            RunLoop.current.run(until: Date().addingTimeInterval(0.1))
+        }
+
+        for app in NSRunningApplication.runningApplications(withBundleIdentifier: appBundleID) {
+            app.forceTerminate()
+        }
+
+        forceKillLingeringOpenDiskProcesses()
+    }
+
+    private func forceKillLingeringOpenDiskProcesses() {
+        let commands: [[String]] = [
+            ["/usr/bin/killall", "-9", "OpenDisk"],
+            ["/usr/bin/pkill", "-9", "-f", "OpenDisk.app/Contents/MacOS/OpenDisk"]
+        ]
+
+        for command in commands {
+            guard let executable = command.first else { continue }
+            let process = Process()
+            process.executableURL = URL(fileURLWithPath: executable)
+            process.arguments = Array(command.dropFirst())
+            process.standardOutput = Pipe()
+            process.standardError = Pipe()
+            do {
+                try process.run()
+                process.waitUntilExit()
+            } catch {
+                continue
+            }
+        }
+    }
+
+    private func launchApp(resetOnboarding: Bool) throws -> XCUIApplication {
+        if !NSRunningApplication.runningApplications(withBundleIdentifier: appBundleID).isEmpty {
+            throw XCTSkip("Skipping: an external OpenDisk process is still attached and cannot be safely terminated by XCTest.")
+        }
+
+        let app = XCUIApplication()
+        app.launchEnvironment["OPENDISK_USE_MOCKS"] = "1"
+        if resetOnboarding {
+            app.launchEnvironment["OPENDISK_RESET_ONBOARDING"] = "1"
+            app.launchEnvironment["OPENDISK_PERMISSION_STATUS"] = "authorized"
+            app.launchEnvironment["OPENDISK_AI_SUPPORTED"] = "1"
+        } else {
+            app.launchEnvironment["OPENDISK_FORCE_COMPLETE_ONBOARDING"] = "1"
+        }
+        app.launch()
+        return app
     }
 
     @MainActor
     func testFirstBootOnboardingFlow() throws {
-        let app = XCUIApplication()
-        app.launchEnvironment["OPENDISK_USE_MOCKS"] = "1"
-        app.launchEnvironment["OPENDISK_RESET_ONBOARDING"] = "1"
-        app.launchEnvironment["OPENDISK_PERMISSION_STATUS"] = "authorized"
-        app.launchEnvironment["OPENDISK_AI_SUPPORTED"] = "1"
-        app.launch()
+        let app = try launchApp(resetOnboarding: true)
 
         XCTAssertTrue(app.staticTexts["OpenDisk Setup"].waitForExistence(timeout: 5))
 
@@ -39,10 +101,7 @@ final class OpenDiskUITests: XCTestCase {
 
     @MainActor
     func testAppUninstallFlow() throws {
-        let app = XCUIApplication()
-        app.launchEnvironment["OPENDISK_USE_MOCKS"] = "1"
-        app.launchEnvironment["OPENDISK_FORCE_COMPLETE_ONBOARDING"] = "1"
-        app.launch()
+        let app = try launchApp(resetOnboarding: false)
 
         let xcodeRow = app.buttons["app_row_com.apple.dt.Xcode"]
         XCTAssertTrue(xcodeRow.waitForExistence(timeout: 5))
@@ -61,10 +120,7 @@ final class OpenDiskUITests: XCTestCase {
 
     @MainActor
     func testOrphanScanAndCleanupFlow() throws {
-        let app = XCUIApplication()
-        app.launchEnvironment["OPENDISK_USE_MOCKS"] = "1"
-        app.launchEnvironment["OPENDISK_FORCE_COMPLETE_ONBOARDING"] = "1"
-        app.launch()
+        let app = try launchApp(resetOnboarding: false)
 
         let scanButton = app.buttons["scan_orphans_button"]
         XCTAssertTrue(scanButton.waitForExistence(timeout: 5))
@@ -79,10 +135,7 @@ final class OpenDiskUITests: XCTestCase {
 
     @MainActor
     func testActivityMonitorLoadsChartAndSessionList() throws {
-        let app = XCUIApplication()
-        app.launchEnvironment["OPENDISK_USE_MOCKS"] = "1"
-        app.launchEnvironment["OPENDISK_FORCE_COMPLETE_ONBOARDING"] = "1"
-        app.launch()
+        let app = try launchApp(resetOnboarding: false)
 
         let activityItem = app.staticTexts["Activity"]
         XCTAssertTrue(activityItem.waitForExistence(timeout: 5))
@@ -90,14 +143,12 @@ final class OpenDiskUITests: XCTestCase {
 
         XCTAssertTrue(app.staticTexts["Activity Monitor"].waitForExistence(timeout: 5))
         XCTAssertTrue(app.otherElements["activity_chart"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.otherElements["activity_disk_trend_chart"].waitForExistence(timeout: 5))
     }
 
     @MainActor
     func testSidebarNavigationToStorageMapCategoriesAndDuplicates() throws {
-        let app = XCUIApplication()
-        app.launchEnvironment["OPENDISK_USE_MOCKS"] = "1"
-        app.launchEnvironment["OPENDISK_FORCE_COMPLETE_ONBOARDING"] = "1"
-        app.launch()
+        let app = try launchApp(resetOnboarding: false)
 
         let storageMapItem = app.staticTexts["Storage Map"]
         XCTAssertTrue(storageMapItem.waitForExistence(timeout: 5))

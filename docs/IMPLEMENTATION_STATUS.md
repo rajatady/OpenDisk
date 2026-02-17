@@ -17,6 +17,15 @@
   - AI profile inference service with Apple Foundation Models runtime path plus deterministic heuristic fallback.
   - Semantic cleanup unit detection service.
   - Recommendation ranking service and Smart Cleanup UI.
+- Phase 4 foundation:
+  - Storage map scanner integration with treemap-style visual drilldown and cache reuse.
+- Phase 5 foundation:
+  - Smart categories view, safety-tier totals, and quick-clean execution for safe artifacts.
+- Phase 6 foundation:
+  - Large-item surfacing and duplicate-cluster UI/state models.
+- Phase 7 partial:
+  - Activity monitor dashboard with metric switching, reclaim trend chart, and disk-growth projection.
+  - Persistent timeline snapshots with bounded on-disk storage.
 - App icon system:
   - Vector source plus generated macOS app icon set.
 - Quality foundation:
@@ -25,10 +34,10 @@
 
 ## Pending from the full roadmap
 - Foundation Model tool-calling for deeper semantic file-cluster inspection beyond prompt-only profile inference.
-- Treemap storage map feature set (phase 4).
-- Smart categories and full cache cleaner modules (phase 5).
-- Large files explorer and duplicate finder pipeline (phase 6).
-- Timeline snapshots, trend projection, and automations/leftover guard (phase 7).
+- Storage map: richer progressive rendering, contextual actions, and Finder/Quick Look integrations.
+- Smart categories: full cache-cleaner detector modules (browsers, package managers, Docker, logs/temp).
+- Duplicates: deterministic hash pipeline (size bucketing + partial hash + full hash confirmation).
+- Timeline/automation: scheduled jobs, notification workflows, and leftover guard background monitoring.
 - Release hardening and additional performance/accessibility polish (phase 8).
 
 ## Validation status

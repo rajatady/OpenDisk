@@ -60,6 +60,14 @@ final class RootViewModel: ObservableObject {
             apps: appManagerViewModel.state.apps,
             usedCachedResults: appManagerViewModel.state.usedCachedResults
         )
+        if let snapshot = makeCurrentSnapshot(scope: scanScope) {
+            await activityMonitorViewModel.recordSnapshot(
+                usedBytes: snapshot.usedBytes,
+                freeBytes: snapshot.freeBytes,
+                capturedAt: snapshot.capturedAt,
+                refreshAfterSave: false
+            )
+        }
         let duration = Date().timeIntervalSince(start)
 
         await activityMonitorViewModel.recordSession(
@@ -68,6 +76,36 @@ final class RootViewModel: ObservableObject {
             reclaimBytes: appManagerViewModel.totalReclaimPotential,
             scanDurationSeconds: duration,
             usedCachedCatalog: appManagerViewModel.state.usedCachedResults || recommendationsViewModel.state.usedCachedResults
+        )
+    }
+
+    private func makeCurrentSnapshot(scope: ScanScope) -> DiskSnapshot? {
+        let root: URL
+        switch scope {
+        case .home:
+            root = URL(fileURLWithPath: NSHomeDirectory())
+        case .applications:
+            root = URL(fileURLWithPath: "/Applications")
+        case .fullDisk:
+            root = URL(fileURLWithPath: "/")
+        }
+
+        guard
+            let attributes = try? FileManager.default.attributesOfFileSystem(forPath: root.path),
+            let total = attributes[.systemSize] as? NSNumber,
+            let free = attributes[.systemFreeSize] as? NSNumber
+        else {
+            return nil
+        }
+
+        let totalBytes = total.int64Value
+        let freeBytes = max(0, free.int64Value)
+
+        return DiskSnapshot(
+            id: UUID(),
+            capturedAt: Date(),
+            usedBytes: max(0, totalBytes - freeBytes),
+            freeBytes: freeBytes
         )
     }
 }
