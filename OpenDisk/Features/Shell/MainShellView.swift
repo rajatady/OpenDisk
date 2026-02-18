@@ -69,7 +69,7 @@ struct MainShellView: View {
             // Nav items
             ScrollView {
                 VStack(spacing: ODSpacing.xs) {
-                    ForEach(Array(AppSection.allCases.enumerated()), id: \.element.id) { index, section in
+                    ForEach(Array(AppSection.productionReadySections.enumerated()), id: \.element.id) { index, section in
                         sidebarItem(section, index: index)
                     }
                 }
@@ -190,16 +190,10 @@ struct MainShellView: View {
         switch rootViewModel.selectedSection {
         case .appManager:
             AppManagerView(viewModel: rootViewModel.appManagerViewModel)
-        case .recommendations:
-            RecommendationsView(viewModel: rootViewModel.recommendationsViewModel)
-        case .storageMap:
-            StorageMapView(viewModel: rootViewModel.storageMapViewModel, scope: rootViewModel.scanScope)
         case .smartCategories:
             SmartCategoriesView(viewModel: rootViewModel.smartCategoriesViewModel)
-        case .duplicates:
-            DuplicatesView(viewModel: rootViewModel.duplicatesViewModel)
-        case .timeline:
-            ActivityMonitorView(viewModel: rootViewModel.activityMonitorViewModel)
+        case .recommendations, .storageMap, .duplicates, .timeline:
+            AppManagerView(viewModel: rootViewModel.appManagerViewModel)
         }
     }
 
@@ -214,12 +208,8 @@ struct MainShellView: View {
                 text: rootViewModel.appManagerViewModel.state.usedCachedResults ? "Cached" : "Live"
             )
             statusPill(
-                icon: "sparkles",
-                text: rootViewModel.recommendationsViewModel.state.usedCachedResults ? "AI: Cached" : "AI: Live"
-            )
-            statusPill(
-                icon: "circle.grid.cross",
-                text: rootViewModel.storageMapViewModel.state.usedCachedResults ? "Map: Cached" : "Map: Live"
+                icon: "checkmark.shield",
+                text: Formatting.bytes(rootViewModel.smartCategoriesViewModel.totalSafeCleanupBytes)
             )
             statusPill(icon: "scope", text: rootViewModel.scanScope.title)
         }

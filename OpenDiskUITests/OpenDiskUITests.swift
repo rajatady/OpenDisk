@@ -134,45 +134,32 @@ final class OpenDiskUITests: XCTestCase {
     }
 
     @MainActor
-    func testActivityMonitorLoadsChartAndSessionList() throws {
+    func testSidebarShowsOnlyActionableSections() throws {
         let app = try launchApp(resetOnboarding: false)
 
-        let activityItem = app.staticTexts["Activity"]
-        XCTAssertTrue(activityItem.waitForExistence(timeout: 5))
-        activityItem.tap()
+        XCTAssertTrue(app.staticTexts["App Manager"].waitForExistence(timeout: 5))
+        XCTAssertTrue(app.staticTexts["Categories"].waitForExistence(timeout: 5))
 
-        XCTAssertTrue(app.staticTexts["Activity Monitor"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.otherElements["activity_chart"].waitForExistence(timeout: 5))
-        XCTAssertTrue(app.otherElements["activity_disk_trend_chart"].waitForExistence(timeout: 5))
+        XCTAssertFalse(app.otherElements["sidebar_recommendations"].exists)
+        XCTAssertFalse(app.otherElements["sidebar_storageMap"].exists)
+        XCTAssertFalse(app.otherElements["sidebar_duplicates"].exists)
+        XCTAssertFalse(app.otherElements["sidebar_timeline"].exists)
     }
 
     @MainActor
-    func testSidebarNavigationToStorageMapCategoriesAndDuplicates() throws {
+    func testSidebarNavigationAndQuickCleanFlow() throws {
         let app = try launchApp(resetOnboarding: false)
-
-        let storageMapItem = app.staticTexts["Storage Map"]
-        XCTAssertTrue(storageMapItem.waitForExistence(timeout: 5))
-        storageMapItem.tap()
-        XCTAssertTrue(app.staticTexts["storage_map_title"].waitForExistence(timeout: 5))
-
-        let firstTile = app.buttons["storage_map_tile_0"]
-        XCTAssertTrue(firstTile.waitForExistence(timeout: 5))
-        firstTile.tap()
-
-        let backButton = app.buttons["storage_map_back_button"]
-        XCTAssertTrue(backButton.waitForExistence(timeout: 5))
-        XCTAssertTrue(backButton.isEnabled)
-        backButton.tap()
 
         let categoriesItem = app.staticTexts["Categories"]
         XCTAssertTrue(categoriesItem.waitForExistence(timeout: 5))
         categoriesItem.tap()
         XCTAssertTrue(app.staticTexts["smart_categories_title"].waitForExistence(timeout: 5))
 
-        let duplicatesItem = app.staticTexts["Duplicates"]
-        XCTAssertTrue(duplicatesItem.waitForExistence(timeout: 5))
-        duplicatesItem.tap()
-        XCTAssertTrue(app.staticTexts["duplicates_title"].waitForExistence(timeout: 5))
+        let quickCleanButton = app.buttons["smart_categories_quick_clean_button"]
+        XCTAssertTrue(quickCleanButton.waitForExistence(timeout: 5))
+        XCTAssertTrue(quickCleanButton.isEnabled)
+        quickCleanButton.tap()
+        XCTAssertTrue(app.staticTexts["smart_categories_quick_clean_result"].waitForExistence(timeout: 5))
 
         let appManagerItem = app.staticTexts["App Manager"]
         XCTAssertTrue(appManagerItem.waitForExistence(timeout: 5))

@@ -10,6 +10,12 @@ enum AppSection: String, CaseIterable, Identifiable {
 
     var id: String { rawValue }
 
+    // Strict production mode: only ship sections with executable cleanup actions.
+    static let productionReadySections: [AppSection] = [
+        .appManager,
+        .smartCategories
+    ]
+
     var title: String {
         switch self {
         case .appManager:

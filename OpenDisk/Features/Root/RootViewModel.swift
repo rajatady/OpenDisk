@@ -3,7 +3,14 @@ import Combine
 
 @MainActor
 final class RootViewModel: ObservableObject {
-    @Published var selectedSection: AppSection = .appManager
+    @Published var selectedSection: AppSection = .appManager {
+        didSet {
+            guard AppSection.productionReadySections.contains(selectedSection) else {
+                selectedSection = .appManager
+                return
+            }
+        }
+    }
     @Published var shouldShowOnboarding: Bool
 
     let onboardingViewModel: OnboardingViewModel
@@ -48,65 +55,10 @@ final class RootViewModel: ObservableObject {
     }
 
     func refreshAll() async {
-        let start = Date()
         await appManagerViewModel.loadApps()
-        await recommendationsViewModel.load(apps: appManagerViewModel.state.apps, scope: scanScope)
-        await storageMapViewModel.load(scope: scanScope)
         smartCategoriesViewModel.load(
             apps: appManagerViewModel.state.apps,
             usedCachedResults: appManagerViewModel.state.usedCachedResults
-        )
-        duplicatesViewModel.load(
-            apps: appManagerViewModel.state.apps,
-            diskRoot: storageMapViewModel.state.root,
-            usedCachedResults: appManagerViewModel.state.usedCachedResults
-        )
-        if let snapshot = makeCurrentSnapshot(scope: scanScope) {
-            await activityMonitorViewModel.recordSnapshot(
-                usedBytes: snapshot.usedBytes,
-                freeBytes: snapshot.freeBytes,
-                capturedAt: snapshot.capturedAt,
-                refreshAfterSave: false
-            )
-        }
-        let duration = Date().timeIntervalSince(start)
-
-        await activityMonitorViewModel.recordSession(
-            appCount: appManagerViewModel.state.apps.count,
-            recommendationCount: recommendationsViewModel.state.recommendations.count,
-            reclaimBytes: appManagerViewModel.totalReclaimPotential,
-            scanDurationSeconds: duration,
-            usedCachedCatalog: appManagerViewModel.state.usedCachedResults || recommendationsViewModel.state.usedCachedResults
-        )
-    }
-
-    private func makeCurrentSnapshot(scope: ScanScope) -> DiskSnapshot? {
-        let root: URL
-        switch scope {
-        case .home:
-            root = URL(fileURLWithPath: NSHomeDirectory())
-        case .applications:
-            root = URL(fileURLWithPath: "/Applications")
-        case .fullDisk:
-            root = URL(fileURLWithPath: "/")
-        }
-
-        guard
-            let attributes = try? FileManager.default.attributesOfFileSystem(forPath: root.path),
-            let total = attributes[.systemSize] as? NSNumber,
-            let free = attributes[.systemFreeSize] as? NSNumber
-        else {
-            return nil
-        }
-
-        let totalBytes = total.int64Value
-        let freeBytes = max(0, free.int64Value)
-
-        return DiskSnapshot(
-            id: UUID(),
-            capturedAt: Date(),
-            usedBytes: max(0, totalBytes - freeBytes),
-            freeBytes: freeBytes
         )
     }
 }
